@@ -32,7 +32,7 @@ This is intentional product logic: document parsing, citations, filtering, compa
 
 The repository is configured for **Firebase Hosting** and a **Firebase Cloud Function (2nd gen)** using the **Gemini API** through `@google/genai`.
 
-The working demo does not require credentials. To deploy Gemini enrichment:
+The working demo does not require credentials. Once deployed, the Ask view progressively uses Gemini through `/api/grounded-answer`; during local file use or a transient service failure it falls back to the tested source matcher. To deploy Gemini enrichment:
 
 ```bash
 firebase login
@@ -61,6 +61,7 @@ index.html              Accessible product UI
 styles.css              Responsive visual system and print style
 app.js                  UI state and interaction wiring
 src/legal-core.js       Tested source-grounding and comparison logic
+src/gemini-client.js    Timeout-bound Firebase/Gemini enhancement client
 functions/index.js      Secure Gemini/Firebase enrichment endpoint
 tests/legal-core.test.mjs
 ```

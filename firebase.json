@@ -2,6 +2,7 @@
   "functions": { "source": "functions" },
   "hosting": {
     "public": ".",
+    "rewrites": [{ "source": "/api/grounded-answer", "function": "groundedAnswer" }],
     "ignore": ["firebase.json", "**/.*", "**/node_modules/**", "functions/**", "tests/**"],
     "headers": [
       {

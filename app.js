@@ -6,6 +6,7 @@ import {
   concernOptions,
   findingsForConcerns,
 } from "./src/legal-core.js";
+import { requestGroundedAnswer } from "./src/gemini-client.js";
 
 const $ = (selector) => document.querySelector(selector);
 const state = { analysis: null, concerns: [] };
@@ -78,11 +79,21 @@ function selectTab(name) {
   });
 }
 
-function showAnswer(question) {
-  const answer = answerQuestion(question, state.analysis);
+async function showAnswer(question) {
+  const localAnswer = answerQuestion(question, state.analysis);
   const box = $("#answer-box");
   box.hidden = false;
+  box.innerHTML = `<h4>Checking document sources...</h4><p>Finding the relevant clause and preparing a clear answer.</p>`;
+  const enriched = await requestGroundedAnswer(question, state.analysis);
+  const answer = enriched ? toDisplayAnswer(enriched, state.analysis) : localAnswer;
   box.innerHTML = answer.found ? `<h4>Answer</h4><p>${escapeHtml(answer.text)}</p><button class="source-link" data-clause-id="${answer.citation.id}" type="button">Source: Clause ${answer.citation.id}, ${escapeHtml(answer.citation.title)} ↗</button>` : `<h4>Not found in this document</h4><p class="unanswered">${escapeHtml(answer.text)}</p>`;
+}
+
+function toDisplayAnswer(result, analysis) {
+  const sourceId = result.sourceClauseIds?.[0];
+  const source = analysis.clauses.find((clause) => clause.id === sourceId);
+  if (!result.found || !source) return { found: false, text: "I could not find information in this document that answers that question.", citation: null };
+  return { found: true, text: result.answer, citation: source };
 }
 
 $("#load-demo").addEventListener("click", () => renderAnalysis(DEMO_DOCUMENT));
@@ -108,12 +119,12 @@ document.addEventListener("click", (event) => {
   const source = event.target.closest("[data-clause-id]");
   if (source) { selectTab("clauses"); requestAnimationFrame(() => { const target = document.querySelector(`#clause-${source.dataset.clauseId}`); if (target) { target.open = true; target.scrollIntoView({ behavior: "smooth", block: "center" }); } }); }
   const suggested = event.target.closest("[data-question]");
-  if (suggested) { $("#question-input").value = suggested.dataset.question; showAnswer(suggested.dataset.question); }
+  if (suggested) { $("#question-input").value = suggested.dataset.question; void showAnswer(suggested.dataset.question); }
 });
 
 document.querySelectorAll(".tab").forEach((tab) => tab.addEventListener("click", () => selectTab(tab.id.replace("-tab", ""))));
 $("#risk-filter").addEventListener("change", renderClauses);
-$("#question-form").addEventListener("submit", (event) => { event.preventDefault(); const question = $("#question-input").value.trim(); if (question) showAnswer(question); });
+$("#question-form").addEventListener("submit", (event) => { event.preventDefault(); const question = $("#question-input").value.trim(); if (question) void showAnswer(question); });
 $("#compare-button").addEventListener("click", () => {
   const text = $("#comparison-text").value.trim();
   if (!text) { window.alert("Paste a second document to compare."); return; }
