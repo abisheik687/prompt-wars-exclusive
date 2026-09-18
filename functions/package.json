@@ -1,0 +1,11 @@
+{
+  "name": "clausewise-functions",
+  "private": true,
+  "type": "module",
+  "engines": { "node": "20" },
+  "main": "index.js",
+  "dependencies": {
+    "@google/genai": "^1.0.0",
+    "firebase-functions": "^6.0.0"
+  }
+}

@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="Clausewise helps people understand legal documents with grounded, source-linked explanations." />
+    <title>Clausewise | Understand before you agree</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <a class="skip-link" href="#main">Skip to analysis</a>
+    <header class="topbar">
+      <a class="brand" href="#" aria-label="Clausewise home">
+        <span class="brand-mark" aria-hidden="true">C</span>
+        <span>Clausewise</span>
+      </a>
+      <div class="trust-pill"><span class="status-dot"></span> Grounded document analysis</div>
+      <button class="text-button" id="privacy-button" type="button">Privacy</button>
+    </header>
+
+    <main id="main">
+      <section class="workspace" aria-label="Legal document workspace">
+        <aside class="left-panel">
+          <p class="eyebrow">YOUR DOCUMENT</p>
+          <h1>Understand before you agree.</h1>
+          <p class="intro">Clausewise translates legal language into clear next steps, with every finding traceable back to its source.</p>
+
+          <div class="upload-zone" id="upload-zone">
+            <input id="file-input" type="file" accept=".txt,.md,.html" hidden />
+            <div class="upload-icon" aria-hidden="true">+</div>
+            <strong>Upload a document</strong>
+            <span>Text, Markdown, or HTML up to 2 MB</span>
+            <button class="secondary-button" id="upload-button" type="button">Choose file</button>
+          </div>
+
+          <div class="divider"><span>or explore the workflow</span></div>
+          <button class="demo-card" id="load-demo" type="button">
+            <span class="demo-icon" aria-hidden="true">DOC</span>
+            <span><strong>Employment offer</strong><small>Demo document · 12 clauses</small></span>
+            <span aria-hidden="true">→</span>
+          </button>
+
+          <div class="safety-note">
+            <span aria-hidden="true">i</span>
+            <p>Information, not legal advice. For decisions with legal consequences, consult a qualified professional.</p>
+          </div>
+        </aside>
+
+        <section class="analysis-panel" aria-live="polite">
+          <div id="empty-state" class="empty-state">
+            <div class="document-illustration" aria-hidden="true"><span></span><span></span><span></span><span></span></div>
+            <h2>Your clarity dashboard will appear here</h2>
+            <p>Choose the demo or add a document to identify obligations, questions, and terms worth a closer look.</p>
+          </div>
+
+          <div id="analysis-state" class="analysis-state" hidden>
+            <div class="document-bar">
+              <div>
+                <p class="eyebrow">ANALYSIS FOR</p>
+                <h2 id="document-title">Employment Offer</h2>
+              </div>
+              <button class="icon-button" id="reset-button" type="button" aria-label="Remove document" title="Remove document">×</button>
+            </div>
+
+            <div class="summary-grid" aria-label="Document summary">
+              <article class="metric"><span class="metric-label">Reading time</span><strong id="reading-time">4 min</strong></article>
+              <article class="metric"><span class="metric-label">Key obligations</span><strong id="obligation-count">5</strong></article>
+              <article class="metric risk-metric"><span class="metric-label">Needs attention</span><strong id="attention-count">3</strong></article>
+            </div>
+
+            <div class="tabs" role="tablist" aria-label="Analysis views">
+              <button role="tab" aria-selected="true" aria-controls="overview-view" id="overview-tab" class="tab active">Overview</button>
+              <button role="tab" aria-selected="false" aria-controls="clauses-view" id="clauses-tab" class="tab">Clauses</button>
+              <button role="tab" aria-selected="false" aria-controls="ask-view" id="ask-tab" class="tab">Ask</button>
+              <button role="tab" aria-selected="false" aria-controls="compare-view" id="compare-tab" class="tab">Compare</button>
+            </div>
+
+            <section id="overview-view" role="tabpanel" aria-labelledby="overview-tab" class="view active">
+              <div class="context-card">
+                <div><p class="eyebrow">PERSONALIZE YOUR REVIEW</p><h3>What matters most to you?</h3></div>
+                <div class="concerns" id="concerns" aria-label="Review priorities"></div>
+              </div>
+              <div class="section-heading"><div><p class="eyebrow">AT A GLANCE</p><h3>What this document means</h3></div><button class="link-button" data-tab-target="clauses" type="button">View all clauses</button></div>
+              <div id="finding-list" class="finding-list"></div>
+              <div class="section-heading compact"><div><p class="eyebrow">PREPARE FOR A PROFESSIONAL</p><h3>Questions worth asking</h3></div><button class="icon-button print-button" id="print-questions" type="button" aria-label="Print questions" title="Print questions">↗</button></div>
+              <ol id="question-list" class="question-list"></ol>
+            </section>
+
+            <section id="clauses-view" role="tabpanel" aria-labelledby="clauses-tab" class="view" hidden>
+              <div class="section-heading"><div><p class="eyebrow">SOURCE-LINKED REVIEW</p><h3>Clauses in plain language</h3></div><label class="filter-label">Show <select id="risk-filter"><option value="all">All clauses</option><option value="attention">Needs attention</option><option value="positive">Favorable terms</option></select></label></div>
+              <div id="clause-list" class="clause-list"></div>
+            </section>
+
+            <section id="ask-view" role="tabpanel" aria-labelledby="ask-tab" class="view" hidden>
+              <div class="ask-hero"><p class="eyebrow">ASK ABOUT THIS DOCUMENT</p><h3>Get a grounded answer</h3><p>Every answer includes the clause it came from. If the document does not say, we will say that plainly.</p></div>
+              <form id="question-form" class="question-form">
+                <label for="question-input">Your question</label>
+                <div><input id="question-input" autocomplete="off" placeholder="For example: What happens if I resign?" /><button class="primary-button" type="submit">Ask</button></div>
+              </form>
+              <div class="suggested-questions" id="suggested-questions"></div>
+              <div id="answer-box" class="answer-box" hidden></div>
+            </section>
+
+            <section id="compare-view" role="tabpanel" aria-labelledby="compare-tab" class="view" hidden>
+              <div class="compare-header"><div><p class="eyebrow">COMPARE TERMS</p><h3>Compare with another version</h3><p>Add the text of a second version to surface material changes. This comparison stays in your browser.</p></div></div>
+              <label class="compare-input-label" for="comparison-text">Second document text</label>
+              <textarea id="comparison-text" rows="9" placeholder="Paste a revised offer, agreement, or policy here..."></textarea>
+              <button class="primary-button" id="compare-button" type="button">Compare documents</button>
+              <div id="comparison-results" class="comparison-results" hidden></div>
+            </section>
+          </div>
+        </section>
+      </section>
+    </main>
+
+    <dialog id="privacy-dialog">
+      <button class="icon-button dialog-close" id="close-privacy" type="button" aria-label="Close privacy notice">×</button>
+      <p class="eyebrow">PRIVACY BY DESIGN</p><h2>Your document stays in your control.</h2>
+      <p>The demo runs locally. In production, Clausewise sends text only to the configured analysis service, never exposes API keys in the browser, and should apply your organization’s retention policy.</p>
+    </dialog>
+    <script type="module" src="app.js"></script>
+  </body>
+</html>
