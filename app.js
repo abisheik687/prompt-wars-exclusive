@@ -7,6 +7,7 @@ import {
   findingsForConcerns,
 } from "./src/legal-core.js";
 import { requestGroundedAnswer } from "./src/gemini-client.js";
+import { DocumentReadError, readDocumentFile } from "./src/document-reader.js";
 
 const $ = (selector) => document.querySelector(selector);
 const state = { analysis: null, concerns: [] };
@@ -103,12 +104,21 @@ $("#upload-zone").addEventListener("dragleave", () => $("#upload-zone").classLis
 $("#upload-zone").addEventListener("drop", (event) => { event.preventDefault(); $("#upload-zone").classList.remove("dragging"); loadFile(event.dataTransfer.files[0]); });
 $("#file-input").addEventListener("change", (event) => loadFile(event.target.files[0]));
 
-function loadFile(file) {
+async function loadFile(file) {
   if (!file) return;
-  if (file.size > 2 * 1024 * 1024) { window.alert("Choose a document smaller than 2 MB."); return; }
-  const reader = new FileReader();
-  reader.onload = () => renderAnalysis({ title: file.name.replace(/\.[^.]+$/, ""), text: reader.result });
-  reader.readAsText(file);
+  const uploadButton = $("#upload-button");
+  uploadButton.disabled = true;
+  uploadButton.textContent = "Reading document...";
+  try {
+    const document = await readDocumentFile(file);
+    if (document.text.trim().length < 20) throw new DocumentReadError("No readable text was found in this document.");
+    renderAnalysis(document);
+  } catch (error) {
+    window.alert(error instanceof DocumentReadError ? error.message : "This document could not be read. Please try another file.");
+  } finally {
+    uploadButton.disabled = false;
+    uploadButton.textContent = "Choose file";
+  }
 }
 
 document.addEventListener("click", (event) => {

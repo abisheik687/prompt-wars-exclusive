@@ -10,7 +10,7 @@ Clausewise is a grounded legal-information assistant for people reviewing an agr
 
 The workflow puts legal understanding before chat:
 
-1. Upload a document or explore a complete employment-offer demo.
+1. Upload a PDF, DOCX, text, Markdown, or HTML document, or explore a complete employment-offer demo.
 2. See obligations and items that need attention in plain language.
 3. Pick the concern that matters most, such as notice, compensation, restrictions, or work ownership.
 4. Open the original clause behind every finding.
@@ -68,7 +68,7 @@ tests/legal-core.test.mjs
 
 ## Assumptions and limits
 
-- The demo is built for English-language text documents. It accepts `.txt`, `.md`, and `.html` for a small, dependency-free prototype; production ingestion should add server-side PDF/DOCX extraction and malware scanning.
+- The demo is built for English-language documents. It extracts `.pdf` text through PDF.js and `.docx` text through Mammoth in the browser, while plain-text formats remain dependency-free. Production ingestion should move extraction to a malware-scanned server-side pipeline for larger or sensitive documents.
 - Legal terms and enforceability depend on jurisdiction and facts. Clausewise explains the provided document; it does not determine whether a term is valid or enforceable.
 - The local comparison aligns sections by their headings. A production comparison engine should additionally use semantic matching and show a human-review confidence level.
 

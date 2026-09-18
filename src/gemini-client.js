@@ -3,12 +3,12 @@
  * matched answer remains available when running the static demo or if Gemini is
  * unavailable, so an outage never turns an answer into an unsupported claim.
  */
-export async function requestGroundedAnswer(question, analysis) {
-  if (location.protocol === "file:") return null;
+export async function requestGroundedAnswer(question, analysis, { endpoint = "/api/grounded-answer", fetcher = globalThis.fetch, locationInfo = globalThis.location } = {}) {
+  if (locationInfo?.protocol === "file:" || typeof fetcher !== "function") return null;
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 12_000);
   try {
-    const response = await fetch("/api/grounded-answer", {
+    const response = await fetcher(endpoint, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       signal: controller.signal,
