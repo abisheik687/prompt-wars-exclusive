@@ -6,8 +6,15 @@ const geminiApiKey = defineSecret("GEMINI_API_KEY");
 const MAX_DOCUMENT_CHARS = 80_000;
 const MAX_QUESTION_CHARS = 500;
 
-function cors(response) {
-  response.set("Access-Control-Allow-Origin", process.env.ALLOWED_ORIGIN ?? "https://YOUR_PROJECT.web.app");
+function cors(request, response) {
+  const projectId = process.env.GCLOUD_PROJECT;
+  const origin = request.get("Origin");
+  const allowedOrigins = new Set([
+    projectId && `https://${projectId}.web.app`,
+    projectId && `https://${projectId}.firebaseapp.com`,
+    process.env.ALLOWED_ORIGIN,
+  ].filter(Boolean));
+  if (origin && allowedOrigins.has(origin)) response.set("Access-Control-Allow-Origin", origin);
   response.set("Vary", "Origin");
   response.set("Access-Control-Allow-Methods", "POST, OPTIONS");
   response.set("Access-Control-Allow-Headers", "Content-Type");
@@ -23,7 +30,7 @@ function sendJson(response, status, body) {
  * model-created page or clause reference.
  */
 export const groundedAnswer = onRequest({ secrets: [geminiApiKey], cors: false, maxInstances: 3 }, async (request, response) => {
-  cors(response);
+  cors(request, response);
   if (request.method === "OPTIONS") return response.status(204).send("");
   if (request.method !== "POST") return sendJson(response, 405, { error: "Use POST." });
 

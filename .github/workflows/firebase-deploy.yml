@@ -1,0 +1,54 @@
+name: Deploy Clausewise to Firebase
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: firebase-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install function dependencies
+        run: npm install --prefix functions --ignore-scripts
+
+      - name: Authenticate Firebase CLI
+        shell: bash
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+        run: |
+          umask 077
+          printf '%s' "$FIREBASE_SERVICE_ACCOUNT" > "$RUNNER_TEMP/firebase-service-account.json"
+          echo "GOOGLE_APPLICATION_CREDENTIALS=$RUNNER_TEMP/firebase-service-account.json" >> "$GITHUB_ENV"
+
+      - name: Update Gemini secret
+        shell: bash
+        env:
+          FIREBASE_PROJECT_ID: ${{ secrets.FIREBASE_PROJECT_ID }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        run: |
+          umask 077
+          printf '%s' "$GEMINI_API_KEY" > "$RUNNER_TEMP/gemini-secret.txt"
+          npx --yes firebase-tools@14.11.0 functions:secrets:set GEMINI_API_KEY --project "$FIREBASE_PROJECT_ID" --data-file "$RUNNER_TEMP/gemini-secret.txt"
+          rm -f "$RUNNER_TEMP/gemini-secret.txt"
+
+      - name: Deploy Hosting and Functions
+        shell: bash
+        env:
+          FIREBASE_PROJECT_ID: ${{ secrets.FIREBASE_PROJECT_ID }}
+        run: npx --yes firebase-tools@14.11.0 deploy --only hosting,functions --project "$FIREBASE_PROJECT_ID" --non-interactive

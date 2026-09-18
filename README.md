@@ -42,7 +42,13 @@ firebase functions:secrets:set GEMINI_API_KEY
 firebase deploy
 ```
 
-Set `ALLOWED_ORIGIN` to the deployed Firebase Hosting URL before production use. Keep `GEMINI_API_KEY` only in Firebase Secret Manager; `.env` is ignored by Git.
+Firebase Hosting origins for the deployed project are allowed automatically. Use `ALLOWED_ORIGIN` only for an additional trusted production domain. Keep `GEMINI_API_KEY` only in Firebase Secret Manager; `.env` is ignored by Git.
+
+### Continuous deployment
+
+The repository includes `.github/workflows/firebase-deploy.yml`, which deploys Firebase Hosting and Functions after each push to `main`. Configure these repository secrets once in GitHub: `FIREBASE_PROJECT_ID`, `FIREBASE_SERVICE_ACCOUNT`, and `GEMINI_API_KEY`.
+
+The service account must have permission to deploy Firebase Hosting, Cloud Functions, and Secret Manager secrets for the selected Firebase project. The workflow writes the credential only to a temporary runner file, does not print it, and pins its Firebase CLI version.
 
 ## Run locally
 
