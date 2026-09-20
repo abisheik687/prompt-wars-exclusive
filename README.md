@@ -11,14 +11,22 @@ Clausewise is a grounded legal-information assistant for people reviewing an agr
 The workflow puts legal understanding before chat:
 
 1. Upload a PDF, DOCX, text, Markdown, or HTML document, or explore a complete employment-offer demo.
-2. See obligations and items that need attention in plain language.
+2. See document-derived obligations, risks, deadlines, and items that need attention in plain language.
 3. Pick the concern that matters most, such as notice, compensation, restrictions, or work ownership.
 4. Open the original clause behind every finding.
 5. Ask a question. The system cites the source clause, or explicitly says the document does not contain the answer.
-6. Compare a revised version to highlight changed or missing sections.
-7. Print a compact, practical question list for a legal professional.
+6. Use a source-linked review checklist to track deadlines and clarification tasks.
+7. Compare a revised version to highlight changed or missing sections.
+8. Print a compact, practical question list for a legal professional.
 
-This is intentional product logic: document parsing, citations, filtering, comparison, and accessibility are deterministic software responsibilities; Gemini is reserved for production-quality plain-language answers when an answer must be synthesized from the document.
+This is intentional product logic: document parsing, citations, filtering, deadline detection, comparison, and accessibility are deterministic software responsibilities. Gemini enriches both the whole-document review and question answers when deployed, while the browser retains a source-constrained fallback for outages and local demos.
+
+### Grounding contract
+
+- The parser, not the model, creates clause identifiers and PDF page locations.
+- The Gemini review endpoint may improve plain-language explanations, risk reasons, categories, and questions only for those existing clause IDs.
+- The interface always keeps the original clause text as visible source evidence. A model cannot create a page number, a clause ID, or a source excerpt.
+- Uploaded documents without familiar headings still receive a deterministic review based on clause language for obligations, termination, payment, restrictions, ownership, liability, data, dispute, and deadline signals.
 
 ## Key safeguards
 
@@ -67,6 +75,7 @@ index.html              Accessible product UI
 styles.css              Responsive visual system and print style
 app.js                  UI state and interaction wiring
 src/legal-core.js       Tested source-grounding and comparison logic
+src/document-reader.js  PDF/DOCX/text extraction with PDF page tracking
 src/gemini-client.js    Timeout-bound Firebase/Gemini enhancement client
 functions/index.js      Secure Gemini/Firebase enrichment endpoint
 tests/legal-core.test.mjs
@@ -81,7 +90,7 @@ tests/legal-core.test.mjs
 ## Evaluation checklist
 
 - Clean, dependency-light architecture with clear separation of UI and legal logic
-- Automated tests for clause parsing, grounded answers, unanswerable questions, and version comparison
+- Automated tests for clause parsing, generic risk classification, page citations, deadline checklists, grounded answers, unanswerable questions, AI-review validation, and version comparison
 - Keyboard navigation, visible focus states, semantic tabs, labels, responsive layouts, skip link, and print-friendly output
 - No committed credentials, constrained API input, and no client-side Gemini secret
 - Repository stays lightweight; no generated assets or binary files

@@ -2,7 +2,10 @@
   "functions": { "source": "functions" },
   "hosting": {
     "public": ".",
-    "rewrites": [{ "source": "/api/grounded-answer", "function": "groundedAnswer" }],
+    "rewrites": [
+      { "source": "/api/grounded-answer", "function": "groundedAnswer" },
+      { "source": "/api/document-review", "function": "documentReview" }
+    ],
     "ignore": ["firebase.json", "**/.*", "**/node_modules/**", "functions/**", "tests/**"],
     "headers": [
       {

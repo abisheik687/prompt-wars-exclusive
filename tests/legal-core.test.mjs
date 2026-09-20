@@ -1,8 +1,8 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { DEMO_DOCUMENT, analyzeDocument, answerQuestion, compareDocuments, splitClauses } from "../src/legal-core.js";
+import { DEMO_DOCUMENT, analyzeDocument, answerQuestion, compareDocuments, mergeGroundedReview, splitClauses } from "../src/legal-core.js";
 import { DocumentReadError, readDocumentFile } from "../src/document-reader.js";
-import { requestGroundedAnswer } from "../src/gemini-client.js";
+import { requestGroundedAnswer, requestGroundedReview } from "../src/gemini-client.js";
 
 test("splits the demo into source-addressable numbered clauses", () => {
   const clauses = splitClauses(DEMO_DOCUMENT.text);
@@ -69,4 +69,60 @@ test("does not make a network call from a local file preview", async () => {
     fetcher: async () => { throw new Error("Network should not be called"); },
   });
   assert.equal(result, null);
+});
+
+test("sends only parser-created clauses to the document review endpoint", async () => {
+  const analysis = analyzeDocument(DEMO_DOCUMENT);
+  const review = await requestGroundedReview(analysis, {
+    endpoint: "https://example.test/review",
+    locationInfo: { protocol: "https:" },
+    fetcher: async (url, options) => {
+      assert.equal(url, "https://example.test/review");
+      const body = JSON.parse(options.body);
+      assert.equal(body.clauses[0].id, "1");
+      assert.equal(body.clauses[0].page, null);
+      return { ok: true, json: async () => ({ clauses: [{ id: "1", level: "neutral", plain: "A role offer." }] }) };
+    },
+  });
+  assert.equal(review.clauses[0].id, "1");
+});
+
+test("classifies an arbitrary uploaded liability clause and derives a review action", () => {
+  const analysis = analyzeDocument({
+    title: "Vendor terms",
+    text: "1. Limitation of liability. Supplier shall indemnify Customer for all claims and damages arising from the services.",
+  });
+  assert.equal(analysis.clauses[0].category, "Liability and indemnity");
+  assert.equal(analysis.clauses[0].level, "attention");
+  assert.match(analysis.clauses[0].reasons.join(" "), /obligation|one-sided/i);
+  assert.equal(analysis.checklist[0].sourceId, "1");
+});
+
+test("preserves a PDF page location in a source citation", () => {
+  const analysis = analyzeDocument({
+    title: "Two page agreement",
+    pages: ["1. Intro. This section introduces the agreement.", "2. Confidentiality. You must keep customer data confidential."],
+    text: "1. Intro. This section introduces the agreement.\n\n2. Confidentiality. You must keep customer data confidential.",
+  });
+  const answer = answerQuestion("What data must remain confidential?", analysis);
+  assert.equal(answer.found, true);
+  assert.equal(answer.citation.page, 2);
+  assert.equal(answer.citation.id, "2");
+});
+
+test("creates a time-sensitive checklist item from a stated deadline", () => {
+  const analysis = analyzeDocument({ title: "Deadline", text: "1. Acceptance. Please sign by 20 June 2026." });
+  assert.equal(analysis.checklist[0].priority, "Time-sensitive");
+  assert.match(analysis.checklist[0].title, /20 June 2026/);
+});
+
+test("accepts only valid clause ids when merging an AI review", () => {
+  const analysis = analyzeDocument({ title: "One clause", text: "1. Payment. Customer shall pay within 30 days." });
+  mergeGroundedReview(analysis, { clauses: [
+    { id: "1", plain: "Payment is due within 30 days.", category: "Payment", level: "attention", reasons: ["It sets a payment deadline."], question: "When does the payment clock start?" },
+    { id: "999", plain: "Ignore this", category: "Fake", level: "positive", reasons: [], question: "Ignore" },
+  ] });
+  assert.equal(analysis.clauses[0].plain, "Payment is due within 30 days.");
+  assert.equal(analysis.clauses.length, 1);
+  assert.equal(analysis.questions[0].sourceId, "1");
 });

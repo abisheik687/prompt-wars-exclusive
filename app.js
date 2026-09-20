@@ -5,12 +5,13 @@ import {
   compareDocuments,
   concernOptions,
   findingsForConcerns,
+  mergeGroundedReview,
 } from "./src/legal-core.js";
-import { requestGroundedAnswer } from "./src/gemini-client.js";
+import { requestGroundedAnswer, requestGroundedReview } from "./src/gemini-client.js";
 import { DocumentReadError, readDocumentFile } from "./src/document-reader.js";
 
 const $ = (selector) => document.querySelector(selector);
-const state = { analysis: null, concerns: [] };
+const state = { analysis: null, concerns: [], completedChecklist: new Set(), reviewRequestId: 0 };
 
 const riskLabel = { attention: "Needs attention", positive: "Favorable", neutral: "For awareness" };
 
@@ -21,6 +22,8 @@ function escapeHtml(value) {
 function renderAnalysis(document) {
   state.analysis = analyzeDocument(document);
   state.concerns = [];
+  state.completedChecklist = new Set();
+  const requestId = ++state.reviewRequestId;
   $("#empty-state").hidden = true;
   $("#analysis-state").hidden = false;
   $("#document-title").textContent = state.analysis.title;
@@ -30,9 +33,32 @@ function renderAnalysis(document) {
   renderConcerns();
   renderFindings();
   renderQuestions();
+  renderChecklist();
   renderClauses();
   renderSuggestions();
   selectTab("overview");
+  void enrichReview(requestId);
+}
+
+async function enrichReview(requestId) {
+  const review = await requestGroundedReview(state.analysis);
+  if (!review || requestId !== state.reviewRequestId || !state.analysis) {
+    if (requestId === state.reviewRequestId) $("#review-status").textContent = "Source-linked review ready.";
+    return;
+  }
+  mergeGroundedReview(state.analysis, review);
+  $("#obligation-count").textContent = state.analysis.obligations.length;
+  $("#attention-count").textContent = state.analysis.attention.length;
+  renderFindings();
+  renderQuestions();
+  renderChecklist();
+  renderClauses();
+  renderSuggestions();
+  $("#review-status").textContent = "Gemini review added. Every source link remains tied to your document.";
+}
+
+function sourceLabel(item) {
+  return `${item.page ? `Page ${item.page} · ` : ""}Clause ${item.id}`;
 }
 
 function renderConcerns() {
@@ -44,13 +70,21 @@ function renderFindings() {
   $("#finding-list").innerHTML = findings.map((item) => `
     <article class="finding">
       <span class="risk-tag risk-${item.level}">${riskLabel[item.level]}</span>
-      <div><h3>${escapeHtml(item.title)}</h3><p>${escapeHtml(item.plain)}</p></div>
-      <button class="source-link" data-clause-id="${item.id}" type="button">Clause ${item.id} ↗</button>
+      <div><p class="finding-category">${escapeHtml(item.category)}</p><h3>${escapeHtml(item.title)}</h3><p>${escapeHtml(item.plain)}</p><p class="finding-reason">${escapeHtml(item.reasons[0])}</p></div>
+      <button class="source-link" data-clause-id="${item.id}" type="button">${escapeHtml(sourceLabel(item))} ↗</button>
     </article>`).join("");
 }
 
 function renderQuestions() {
-  $("#question-list").innerHTML = state.analysis.questions.map((question) => `<li>${escapeHtml(question)}</li>`).join("");
+  $("#question-list").innerHTML = state.analysis.questions.map((question) => `<li><span>${escapeHtml(question.text)}</span><button class="source-link" data-clause-id="${question.sourceId}" type="button">Source ↗</button></li>`).join("");
+}
+
+function renderChecklist() {
+  $("#checklist").innerHTML = state.analysis.checklist.map((item) => `
+    <li class="checklist-item">
+      <label><input data-checklist-id="${item.id}" type="checkbox" ${state.completedChecklist.has(item.id) ? "checked" : ""} /><span><strong>${escapeHtml(item.title)}</strong><small>${escapeHtml(item.detail)}</small></span></label>
+      <button class="source-link" data-clause-id="${item.sourceId}" type="button">${escapeHtml(item.priority)} ↗</button>
+    </li>`).join("");
 }
 
 function renderClauses() {
@@ -58,8 +92,8 @@ function renderClauses() {
   const clauses = state.analysis.clauses.filter((clause) => filter === "all" || (filter === "attention" ? clause.level === "attention" : clause.level === "positive"));
   $("#clause-list").innerHTML = clauses.map((item) => `
     <details class="clause-card" id="clause-${item.id}">
-      <summary><span class="risk-tag risk-${item.level}">${riskLabel[item.level]}</span><strong>Clause ${item.id}: ${escapeHtml(item.title)}</strong></summary>
-      <div class="clause-content"><p class="plain-language"><strong>In plain language:</strong> ${escapeHtml(item.plain)}</p><p class="source-excerpt"><strong>Source text:</strong> ${escapeHtml(item.text)}</p></div>
+      <summary><span class="risk-tag risk-${item.level}">${riskLabel[item.level]}</span><strong>${escapeHtml(sourceLabel(item))}: ${escapeHtml(item.title)}</strong></summary>
+      <div class="clause-content"><p class="plain-language"><strong>In plain language:</strong> ${escapeHtml(item.plain)}</p><p class="risk-explanation"><strong>Why review it:</strong> ${escapeHtml(item.reasons.join(" "))}</p><p class="source-excerpt"><strong>Source text:</strong> ${escapeHtml(item.text)}</p></div>
     </details>`).join("");
 }
 
@@ -87,14 +121,14 @@ async function showAnswer(question) {
   box.innerHTML = `<h4>Checking document sources...</h4><p>Finding the relevant clause and preparing a clear answer.</p>`;
   const enriched = await requestGroundedAnswer(question, state.analysis);
   const answer = enriched ? toDisplayAnswer(enriched, state.analysis) : localAnswer;
-  box.innerHTML = answer.found ? `<h4>Answer</h4><p>${escapeHtml(answer.text)}</p><button class="source-link" data-clause-id="${answer.citation.id}" type="button">Source: Clause ${answer.citation.id}, ${escapeHtml(answer.citation.title)} ↗</button>` : `<h4>Not found in this document</h4><p class="unanswered">${escapeHtml(answer.text)}</p>`;
+  box.innerHTML = answer.found ? `<h4>Answer</h4><p>${escapeHtml(answer.text)}</p><p class="answer-evidence"><strong>Source evidence:</strong> ${escapeHtml(answer.evidence ?? answer.citation.excerpt)}</p><button class="source-link" data-clause-id="${answer.citation.id}" type="button">Source: ${escapeHtml(sourceLabel(answer.citation))}, ${escapeHtml(answer.citation.title)} ↗</button>${answer.followUp ? `<p class="follow-up"><strong>Ask a professional:</strong> ${escapeHtml(answer.followUp)}</p>` : ""}` : `<h4>Not found in this document</h4><p class="unanswered">${escapeHtml(answer.text)}</p>`;
 }
 
 function toDisplayAnswer(result, analysis) {
   const sourceId = result.sourceClauseIds?.[0];
   const source = analysis.clauses.find((clause) => clause.id === sourceId);
   if (!result.found || !source) return { found: false, text: "I could not find information in this document that answers that question.", citation: null };
-  return { found: true, text: result.answer, citation: source };
+  return { found: true, text: result.answer, citation: source, evidence: source.text, followUp: result.followUpQuestion };
 }
 
 $("#load-demo").addEventListener("click", () => renderAnalysis(DEMO_DOCUMENT));
@@ -130,6 +164,8 @@ document.addEventListener("click", (event) => {
   if (source) { selectTab("clauses"); requestAnimationFrame(() => { const target = document.querySelector(`#clause-${source.dataset.clauseId}`); if (target) { target.open = true; target.scrollIntoView({ behavior: "smooth", block: "center" }); } }); }
   const suggested = event.target.closest("[data-question]");
   if (suggested) { $("#question-input").value = suggested.dataset.question; void showAnswer(suggested.dataset.question); }
+  const checklist = event.target.closest("[data-checklist-id]");
+  if (checklist) { checklist.checked ? state.completedChecklist.add(checklist.dataset.checklistId) : state.completedChecklist.delete(checklist.dataset.checklistId); }
 });
 
 document.querySelectorAll(".tab").forEach((tab) => tab.addEventListener("click", () => selectTab(tab.id.replace("-tab", ""))));
@@ -141,9 +177,9 @@ $("#compare-button").addEventListener("click", () => {
   const results = compareDocuments(state.analysis, text).filter((result) => result.type !== "unchanged");
   const container = $("#comparison-results");
   container.hidden = false;
-  container.innerHTML = results.length ? results.map((result) => `<article class="change"><strong>${escapeHtml(result.title)}</strong>${escapeHtml(result.summary)}</article>`).join("") : `<article class="change unchanged"><strong>No material differences found</strong>The comparable sections use the same wording.</article>`;
+  container.innerHTML = results.length ? results.map((result) => `<article class="change ${result.severity === "attention" ? "change-attention" : ""}"><strong>${escapeHtml(result.title)}</strong><p>${escapeHtml(result.summary)}</p><button class="source-link" data-clause-id="${result.sourceId}" type="button">Open original source ↗</button></article>`).join("") : `<article class="change unchanged"><strong>No material differences found</strong>The comparable sections use the same wording.</article>`;
 });
-$("#reset-button").addEventListener("click", () => { state.analysis = null; $("#analysis-state").hidden = true; $("#empty-state").hidden = false; });
+$("#reset-button").addEventListener("click", () => { state.analysis = null; state.reviewRequestId += 1; $("#analysis-state").hidden = true; $("#empty-state").hidden = false; });
 $("#print-questions").addEventListener("click", () => window.print());
 $("#privacy-button").addEventListener("click", () => $("#privacy-dialog").showModal());
 $("#close-privacy").addEventListener("click", () => $("#privacy-dialog").close());

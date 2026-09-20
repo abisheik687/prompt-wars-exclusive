@@ -27,3 +27,28 @@ export async function requestGroundedAnswer(question, analysis, { endpoint = "/a
     clearTimeout(timeout);
   }
 }
+
+/** Enriches the local review only when the deployed, source-constrained API is available. */
+export async function requestGroundedReview(analysis, { endpoint = "/api/document-review", fetcher = globalThis.fetch, locationInfo = globalThis.location } = {}) {
+  if (locationInfo?.protocol === "file:" || typeof fetcher !== "function") return null;
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 15_000);
+  try {
+    const response = await fetcher(endpoint, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      signal: controller.signal,
+      body: JSON.stringify({
+        clauses: analysis.clauses.map(({ id, title, text, page }) => ({ id, title, text, page })),
+      }),
+    });
+    if (!response.ok) return null;
+    const result = await response.json();
+    if (!Array.isArray(result?.clauses)) return null;
+    return result;
+  } catch {
+    return null;
+  } finally {
+    clearTimeout(timeout);
+  }
+}

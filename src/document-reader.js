@@ -10,10 +10,13 @@ export async function readDocumentFile(file, { loadPdf = loadPdfText, loadDocx =
   if (!file?.name || typeof file.text !== "function") throw new DocumentReadError("Choose a supported document file.");
   if (file.size > MAX_FILE_BYTES) throw new DocumentReadError("Choose a document smaller than 10 MB.");
   const extension = file.name.split(".").pop()?.toLowerCase();
-  if (["txt", "md"].includes(extension)) return { title: withoutExtension(file.name), text: await file.text() };
-  if (extension === "html") return { title: withoutExtension(file.name), text: stripHtml(await file.text()) };
-  if (extension === "pdf") return { title: withoutExtension(file.name), text: await loadPdf(file) };
-  if (extension === "docx") return { title: withoutExtension(file.name), text: await loadDocx(file) };
+  if (["txt", "md"].includes(extension)) return { title: withoutExtension(file.name), text: await file.text(), pages: [] };
+  if (extension === "html") return { title: withoutExtension(file.name), text: stripHtml(await file.text()), pages: [] };
+  if (extension === "pdf") {
+    const pages = await loadPdf(file);
+    return { title: withoutExtension(file.name), text: pages.join("\n\n"), pages };
+  }
+  if (extension === "docx") return { title: withoutExtension(file.name), text: await loadDocx(file), pages: [] };
   throw new DocumentReadError("Supported formats are PDF, DOCX, TXT, Markdown, and HTML.");
 }
 
@@ -26,7 +29,7 @@ async function loadPdfText(file) {
     const content = await page.getTextContent();
     return content.items.map((item) => item.str).join(" ");
   }));
-  return pages.join("\n\n");
+  return pages;
 }
 
 async function loadDocxText(file) {
