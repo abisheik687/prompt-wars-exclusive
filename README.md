@@ -1,96 +1,95 @@
-# Clausewise
+# Festivo AI — Challenge 5: Celebration & Event Planner
 
-Clausewise is a grounded legal-information assistant for people reviewing an agreement without legal training. It turns a document into an understandable, source-linked review, helps someone focus on what matters to them, and prepares questions for a qualified professional. It does not provide legal advice.
+Festivo helps people plan weddings, birthdays, community events, and custom gatherings. This repository contains a working browser demo and an opt-in server integration for Gemini on Vertex AI, Firestore, and Cloud Run.
 
-## Challenge vertical
+## What works
 
-**AI for Legal Assistance & Access**. The product is designed around an employment-offer reviewer, a common situation where a person needs to understand compensation, notice, restrictions, and ownership before agreeing.
+- Event setup with date, location, budget, currency, guest count, venue preference, theme, planning style, and optional access/dietary notes.
+- Context-specific planning guide through Vertex AI when configured; clearly labeled deterministic guidance otherwise.
+- Editable and addable budget categories, deterministic allocation reconciliation, estimates, committed and actual spending, remaining funds, and overspending indicators.
+- Date-aware tasks with editable due dates, priorities, dependencies, blocked/overdue states, cycle prevention, and protected completed/custom tasks when event dates change.
+- Vendor records with contact details, quote/cost/deposit/payment status, booking state, follow-up date, contract and comparison notes.
+- Guest CRUD, RSVP and meal counts, optional notes, and CSV export with quoting and formula-injection protection.
+- Firebase Authentication sign-in, server-verified Firebase ID tokens, and Firestore event ownership when cloud persistence is enabled.
+- Browser-local persistence for the no-cloud demo.
 
-## Why this is different from a PDF chatbot
+Vendor and model suggestions are not verified quotes, bookings, supplier names, prices, or availability. Verify details directly. Model output may be wrong.
 
-The workflow puts legal understanding before chat:
+## Services and architecture
 
-1. Upload a PDF, DOCX, text, Markdown, or HTML document, or explore a complete employment-offer demo.
-2. See document-derived obligations, risks, deadlines, and items that need attention in plain language.
-3. Pick the concern that matters most, such as notice, compensation, restrictions, or work ownership.
-4. Open the original clause behind every finding.
-5. Ask a question. The system cites the source clause, or explicitly says the document does not contain the answer.
-6. Use a source-linked review checklist to track deadlines and clarification tasks.
-7. Compare a revised version to highlight changed or missing sections.
-8. Print a compact, practical question list for a legal professional.
+- **Vertex AI + Gemini:** server-side generation of a structured event planning guide and contextual answers using `@google/genai` and Application Default Credentials.
+- **Cloud Firestore:** optional server-side event-document persistence using the Firestore server client and ADC.
+- **Cloud Run:** Express API and static Vite build in one container; uses the injected `PORT`.
+- **Cloud Scheduler:** not used. There are no reminder workflows.
 
-This is intentional product logic: document parsing, citations, filtering, deadline detection, comparison, and accessibility are deterministic software responsibilities. Gemini enriches both the whole-document review and question answers when deployed, while the browser retains a source-constrained fallback for outages and local demos.
+See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md), [docs/SECURITY.md](docs/SECURITY.md), [docs/TESTING.md](docs/TESTING.md), and [docs/REQUIREMENTS_TRACEABILITY.md](docs/REQUIREMENTS_TRACEABILITY.md).
 
-### Grounding contract
+## Local setup
 
-- The parser, not the model, creates clause identifiers and PDF page locations.
-- The Gemini review endpoint may improve plain-language explanations, risk reasons, categories, and questions only for those existing clause IDs.
-- The interface always keeps the original clause text as visible source evidence. A model cannot create a page number, a clause ID, or a source excerpt.
-- Uploaded documents without familiar headings still receive a deterministic review based on clause language for obligations, termination, payment, restrictions, ownership, liability, data, dispute, and deadline signals.
+Requires Node.js 20.12+ and pnpm. Install dependencies and launch the frontend:
 
-## Key safeguards
-
-- **Grounding:** The front-end answer engine cites the matched clause. The optional Gemini function accepts citations only from supplied clause IDs and rejects model-created IDs.
-- **Unanswerable questions:** No matching source means an explicit "not found" response, not a guess.
-- **Legal boundary:** Persistent information-not-advice language and suggested follow-up questions direct users toward professional review for decisions with legal consequences.
-- **Privacy:** The demo runs locally in the browser. No document content or API key is stored in the front end.
-- **Security:** API keys are configured as Firebase secrets. Inputs have method, type, count, and character-size limits. The deployed endpoint has an explicit allowed origin.
-
-## Google services
-
-The repository is configured for **Firebase Hosting** and a **Firebase Cloud Function (2nd gen)** using the **Gemini API** through `@google/genai`.
-
-The working demo does not require credentials. Once deployed, the Ask view progressively uses Gemini through `/api/grounded-answer`; during local file use or a transient service failure it falls back to the tested source matcher. To deploy Gemini enrichment:
-
-```bash
-firebase login
-firebase init hosting functions
-cd functions && npm install && cd ..
-firebase functions:secrets:set GEMINI_API_KEY
-firebase deploy
+```sh
+pnpm install
+pnpm dev
 ```
 
-Firebase Hosting origins for the deployed project are allowed automatically. Use `ALLOWED_ORIGIN` only for an additional trusted production domain. Keep `GEMINI_API_KEY` only in Firebase Secret Manager; `.env` is ignored by Git.
+The Vite demo can be used without Google Cloud credentials. To run the API and production app locally:
 
-### Continuous deployment
-
-The repository includes `.github/workflows/firebase-deploy.yml`, which deploys Firebase Hosting and Functions after each push to `main`. Configure these repository secrets once in GitHub: `FIREBASE_PROJECT_ID`, `FIREBASE_SERVICE_ACCOUNT`, and `GEMINI_API_KEY`.
-
-The service account must have permission to deploy Firebase Hosting, Cloud Functions, and Secret Manager secrets for the selected Firebase project. The workflow writes the credential only to a temporary runner file, does not print it, and pins its Firebase CLI version.
-
-## Run locally
-
-No build step is required for the demo. Open `index.html` in a modern browser, or serve the folder using any static file server.
-
-Run the trust-critical unit tests with Node 20+:
-
-```bash
-node --test tests/*.test.mjs
+```sh
+pnpm build
+pnpm start
 ```
 
-## Project structure
+Set `PORT` if needed; the API defaults to 8080. Browser demo records are stored in localStorage. Starting the API is needed for model requests and cloud persistence.
 
-```text
-index.html              Accessible product UI
-styles.css              Responsive visual system and print style
-app.js                  UI state and interaction wiring
-src/legal-core.js       Tested source-grounding and comparison logic
-src/document-reader.js  PDF/DOCX/text extraction with PDF page tracking
-src/gemini-client.js    Timeout-bound Firebase/Gemini enhancement client
-functions/index.js      Secure Gemini/Firebase enrichment endpoint
-tests/legal-core.test.mjs
+## Google Cloud configuration
+
+Copy `.env.example` to `.env` and supply your own values. Never commit credentials. Authenticate locally using ADC:
+
+```sh
+gcloud auth application-default login
+gcloud config set project YOUR_PROJECT_ID
 ```
 
-## Assumptions and limits
+Enable Vertex AI and Firestore APIs as needed. Configure `GOOGLE_CLOUD_PROJECT`, `GOOGLE_CLOUD_LOCATION`, and optionally `GEMINI_MODEL`. The defaults use the `global` Vertex AI location and `gemini-3.5-flash-lite`, a GA model that supports structured output. The current model documentation lists global, US, and EU locations; choose a supported location for the configured model. The Cloud Run deployment region is configured separately. The service identity needs `Vertex AI User` for model calls. Set `USE_FIRESTORE=true` to enable event writes and reads; grant the service identity Firestore access (typically `Cloud Datastore User`). Set `FIRESTORE_COLLECTION` if the default collection name does not suit your deployment. Check Google's [model lifecycle and regional availability](https://docs.cloud.google.com/gemini-enterprise-agent-platform/models/gemini/3-5-flash-lite) before deployment because model support changes.
 
-- The demo is built for English-language documents. It extracts `.pdf` text through PDF.js and `.docx` text through Mammoth in the browser, while plain-text formats remain dependency-free. Production ingestion should move extraction to a malware-scanned server-side pipeline for larger or sensitive documents.
-- Legal terms and enforceability depend on jurisdiction and facts. Clausewise explains the provided document; it does not determine whether a term is valid or enforceable.
-- The local comparison aligns sections by their headings. A production comparison engine should additionally use semantic matching and show a human-review confidence level.
+For authenticated cloud mode, add a Firebase Web App to the same project, enable Google sign-in in Firebase Authentication, and set `FIREBASE_WEB_API_KEY`, `FIREBASE_AUTH_DOMAIN`, and `FIREBASE_APP_ID`. These are public Firebase client configuration values; Firebase Admin credentials remain server-side through ADC. Setting `USE_FIRESTORE=true` automatically requires Firebase ID-token verification on event and AI endpoints. Firestore documents store `ownerId` from the verified token; the server ignores client-supplied identity. The runtime service account needs Vertex AI User and Firestore data access (typically Cloud Datastore User). Firestore server access uses Admin/IAM and bypasses Firestore Security Rules, so keep the HTTP API's ownership checks in place.
 
-## Evaluation checklist
+## Cloud Run deployment
 
-- Clean, dependency-light architecture with clear separation of UI and legal logic
-- Automated tests for clause parsing, generic risk classification, page citations, deadline checklists, grounded answers, unanswerable questions, AI-review validation, and version comparison
-- Keyboard navigation, visible focus states, semantic tabs, labels, responsive layouts, skip link, and print-friendly output
-- No committed credentials, constrained API input, and no client-side Gemini secret
-- Repository stays lightweight; no generated assets or binary files
+From the project folder, set up a Google Cloud project, billing, Artifact Registry/Cloud Build, and APIs, then deploy from source:
+
+```sh
+gcloud config set project YOUR_PROJECT_ID
+gcloud run deploy festivo-ai --source . --region asia-south1 --allow-unauthenticated --set-env-vars GOOGLE_CLOUD_PROJECT=YOUR_PROJECT_ID,GOOGLE_CLOUD_LOCATION=global,GEMINI_MODEL=gemini-3.5-flash-lite,FIREBASE_WEB_API_KEY=YOUR_FIREBASE_WEB_API_KEY,FIREBASE_AUTH_DOMAIN=YOUR_PROJECT_ID.firebaseapp.com,FIREBASE_APP_ID=YOUR_FIREBASE_APP_ID,USE_FIRESTORE=true
+```
+
+Cloud Run serves the public web shell; Firebase ID tokens gate cloud event data and AI operations. Attach a least-privilege runtime service account with Vertex AI and Firestore permissions. Configure the deployed Cloud Run hostname as an authorized Firebase Authentication domain. This source configuration has not been deployed or live-tested. No Google Cloud resources are created by these instructions in this repository.
+
+## Tests and checks
+
+```sh
+pnpm test
+pnpm check
+pnpm build
+```
+
+Unit and local API integration tests cover budget reconciliation, CSV safety, task graph rules, token verification and ownership repository logic, event payload validation, browser-demo API behavior, and deterministic plan/copilot fallback. They do not call live Google APIs or Firestore. See [docs/TESTING.md](docs/TESTING.md) for gaps.
+
+## Evaluation walkthrough
+
+1. Create a wedding, birthday, or community event.
+2. Inspect its personalized plan and budget allocations.
+3. Edit/add a budget category and total; check allocation math and overspending feedback.
+4. Add/edit a vendor and guest; change an RSVP and try the guest CSV export.
+5. Add a task with a prerequisite and verify blocked tasks cannot be completed early.
+6. Ask the copilot for budget or schedule advice.
+7. Reload to verify local browser persistence.
+
+## Current limitations
+
+Cloud authentication and owner enforcement are implemented but require Firebase project configuration; only their local unit/mock behavior is tested. Vertex AI and Firestore source clients are implemented but neither has been live-connected. Firestore persistence uses a single owner-scoped event document (including nested child records), not separate collections. The app has no account recovery/management UI, multi-provider auth, invitations, or shared-event roles. Local browser storage remains unencrypted and available to other users of the same browser profile. Vendor details are user-entered and unverified; there is no marketplace. Cloud Scheduler, production Firestore emulator tests, automated browser E2E, keyboard-only walkthrough evidence, and formal WCAG 2.2 AA audit remain outstanding. Do not treat source integration or readiness configuration status as live service verification.
+
+## Submission demo
+
+The [browser demo recording](submission/festivo-ai-demo.webm) was recorded in local browser-demo mode. The visible plan and copilot replies are deterministic fallback output; they are not Vertex AI responses. Live Firebase, Firestore, Vertex AI, and Cloud Run behavior has not been verified.

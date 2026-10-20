@@ -1,0 +1,7 @@
+allowBuilds:
+  esbuild: true
+  protobufjs: false
+  '@google/genai': false
+  '@firebase/util': false
+overrides:
+  '@grpc/grpc-js': ^1.14.6

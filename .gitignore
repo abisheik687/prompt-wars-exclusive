@@ -1,8 +1,8 @@
 node_modules/
-.firebase/
+dist/
 .env
 .env.*
 !.env.example
+.local-data/
 coverage/
 *.log
-
