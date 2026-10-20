@@ -79,13 +79,13 @@ function App() {
     [taskDraft, setTaskDraft] = useState({ title: "", dueDate: "", priority: "Medium", dependencies: [] }),
     [editingTaskId, setEditingTaskId] = useState("");
   const [categoryName, setCategoryName] = useState("");
-  const [authState, setAuthState] = useState({ ready: false, required: false, configured: authConfigured, user: null });
+  const [authState, setAuthState] = useState({ ready: false, required: false, configured: authConfigured, aiConfigured: false, user: null });
   useEffect(() => {
     let active = true;
     let stop = () => {};
     Promise.all([fetch("/api/health").then((r) => r.json()).catch(() => ({})), initializeAuth()]).then(([health, configured]) => {
       if (!active) return;
-      setAuthState((x) => ({ ...x, required: Boolean(health.authRequired), configured, ready: true }));
+      setAuthState((x) => ({ ...x, required: Boolean(health.authRequired), configured, aiConfigured: Boolean(health.aiConfigured), ready: true }));
       stop = watchAuth((user) => { if (active) setAuthState((x) => ({ ...x, user })); });
     });
     return () => { active = false; stop(); };
@@ -265,6 +265,13 @@ function App() {
   const generate = async () => {
     setBusy(true);
     try {
+      if (!authState.aiConfigured) {
+        const next = { ...event, plan: fallbackPlan(event), aiMode: "demo" };
+        update(() => next);
+        save(next);
+        setNotice("AI unavailable; a clearly labeled local planning guide is ready.");
+        return;
+      }
       const r = await fetch("/api/plan", {
         method: "POST",
         headers: { "content-type": "application/json", ...await authHeaders() },
@@ -299,6 +306,10 @@ function App() {
     setQuestion("");
     setBusy(true);
     try {
+      if (!authState.aiConfigured) {
+        setChat((c) => [...c, { role: "assistant", text: localAnswer(event, q), mode: "demo" }]);
+        return;
+      }
       const r = await fetch("/api/copilot", {
         method: "POST",
         headers: { "content-type": "application/json", ...await authHeaders() },

@@ -33,14 +33,24 @@ pnpm install
 pnpm dev
 ```
 
-The Vite demo can be used without Google Cloud credentials. To run the API and production app locally:
+The browser demo can be used without Google Cloud credentials. When Vertex AI is not configured, planning guides and copilot suggestions are generated locally in the browser. To run the API and production app locally:
 
 ```sh
 pnpm build
 pnpm start
 ```
 
-Set `PORT` if needed; the API defaults to 8080. Browser demo records are stored in localStorage. Starting the API is needed for model requests and cloud persistence.
+Set `PORT` if needed; the API defaults to 8080. Browser demo records are stored in localStorage. The API is needed for configured Vertex AI requests and cloud persistence.
+
+## Free public demo on Render
+
+`render.yaml` describes a single Render Web Service on the Free plan in Singapore. It builds the Vite app, starts the Express server, checks `/api/health`, enables browser-demo mode, and disables automatic deployments. The service requires no API keys, Firebase configuration, Google Cloud project, or payment information. Its public URL serves the app and API from the same origin.
+
+To deploy, create a Render account, then create a Blueprint from this public repository or create a Web Service from the public Git URL `https://github.com/abisheik687/prompt-wars-exclusive`. Choose the `main` branch and Free plan. If using the manual Web Service form, use Node runtime, build command `corepack enable && pnpm install --frozen-lockfile && pnpm build`, start command `pnpm start`, and health check path `/api/health`. Do not add a payment method or upgrade the service. Service creation requires your Render account; this repository does not connect an account or create a hosted service automatically.
+
+The app stores events in that browser's localStorage; it does not provide server-side or cross-device event persistence in this configuration. When Vertex AI is unconfigured, planning and copilot responses are deterministic fallback guidance computed in the browser, and event contents are not sent to the API for those requests. The UI labels those responses as local suggestions.
+
+Render's Free web services sleep after 15 minutes without traffic and may take about a minute to wake. Free services have a shared 750 instance-hour monthly allowance per workspace and limited shared bandwidth/build minutes. The filesystem is ephemeral. If usage caps are exceeded without a payment method, Render suspends the affected service/builds until the allowance resets; adding a payment method can permit metered overage charges. See Render's [Free instance limitations](https://render.com/docs/free) and [Blueprint specification](https://render.com/docs/blueprint-spec).
 
 ## Google Cloud configuration
 
