@@ -476,6 +476,22 @@ select:focus-visible {
   gap: 8px;
   margin: 16px 0;
 }
+.expense-form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+}
+.expense-form label {
+  display: grid;
+  flex: 1 1 115px;
+  gap: 5px;
+  min-width: 0;
+  color: var(--muted);
+  font-size: 11px;
+}
+.expense-form label:first-child { flex: 2 1 160px; }
+.expense-form input,
+.expense-form select { width: 100%; }
 .record-form {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(min(100%, 190px), 1fr));
@@ -736,6 +752,12 @@ select:focus-visible {
   .inline-form {
     flex-wrap: wrap;
   }
+  .expense-form {
+    align-items: end;
+  }
+  .expense-form label { flex-basis: 45%; }
+  .expense-form label:first-child { flex-basis: 100%; }
+  .expense-form .primary { flex: 1 1 100%; }
   .inline-form input,
   .inline-form select {
     flex: 1 1 40%;

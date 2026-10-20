@@ -157,6 +157,14 @@ export function money(value, currency = "INR") {
     return `${currency} ${Math.round(Number(value) || 0)}`;
   }
 }
+export function expenseDate(expense) {
+  if (typeof expense?.date === "string" && expense.date) return expense.date;
+  if (typeof expense?.createdAt !== "string") return "";
+  const createdAt = new Date(expense.createdAt);
+  if (Number.isNaN(createdAt.getTime())) return "";
+  const local = new Date(createdAt.getTime() - createdAt.getTimezoneOffset() * 60000);
+  return local.toISOString().slice(0, 10);
+}
 export function makeTimeline(date) {
   const now = new Date();
   now.setHours(12, 0, 0, 0);

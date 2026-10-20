@@ -6,7 +6,7 @@
 | Context-aware AI plan/copilot | P0 | `server/index.js`, `server/core.js` | API fallback tests; structured schema and response checks; Vertex live call pending |
 | Server-side model auth, bounded requests and honest fallback | P0 | `server/core.js`, rate middleware | No paid calls in tests; verify real ADC, region, quotas, and model behavior before production |
 | Editable budget allocations and categories | P0 | `src/app.js`, `src/core.js` | Reconciliation, overspend, rounding and invalid-value unit tests; browser category edit/add walkthrough |
-| Estimated, committed, actual expenses | P0 | `src/core.js`, budget workspace | Summary tests; client create/status/delete workflow; Firestore nested with event |
+| Estimated, committed, actual, dated expenses | P0 | `src/app.js`, `src/core.js`, `server/core.js` | Client date input, edit, display; API rejects invalid calendar dates while retaining legacy records without dates; budget summary tests |
 | Vendor create/read/edit/delete | P1 | `src/app.js` vendor workspace | Validation in `server/core.js`; UI includes contacts, cost/quote, deposit, statuses, follow-up, notes; no verified marketplace or quote source |
 | Guest create/read/edit/delete, RSVP and counts | P1 | `src/app.js` guest workspace | UI paths and input validation; ownership inherited from event document; no separate CRUD integration test |
 | Guest CSV with formula injection protection | P1 | `src/core.js` `csvCell`, `guestsCsv` | Unit tests cover commas, quotes, newlines, formulas; no independent spreadsheet-app import test |

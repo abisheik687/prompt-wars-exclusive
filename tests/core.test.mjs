@@ -5,6 +5,7 @@ import {
   budgetSummary,
   dependentTaskIds,
   csvCell,
+  expenseDate,
   guestsCsv,
   findScheduleConflict,
   makeTimeline,
@@ -39,6 +40,23 @@ test("expense totals are deterministic and distinguish commitments", () => {
   assert.equal(s.committed, 300);
   assert.equal(s.actual, 100);
   assert.equal(s.remaining, 350);
+});
+test("expense dates remain date-only and legacy timestamps use the local calendar date", () => {
+  const oldTimezone = process.env.TZ;
+  process.env.TZ = "Asia/Kolkata";
+  try {
+    assert.equal(expenseDate({ date: "2025-01-02", createdAt: "2025-01-01T18:45:00.000Z" }), "2025-01-02");
+    assert.equal(expenseDate({ createdAt: "2025-01-01T18:45:00.000Z" }), "2025-01-02");
+    process.env.TZ = "America/Los_Angeles";
+    assert.equal(expenseDate({ createdAt: "2025-01-02T00:15:00.000Z" }), "2025-01-01");
+    assert.equal(expenseDate({ date: "2025-01-02", createdAt: "2025-01-02T00:15:00.000Z" }), "2025-01-02");
+    process.env.TZ = "UTC";
+    assert.equal(expenseDate({ createdAt: "2025-01-02T00:15:00.000Z" }), "2025-01-02");
+    assert.equal(expenseDate({ createdAt: "invalid" }), "");
+  } finally {
+    if (oldTimezone === undefined) delete process.env.TZ;
+    else process.env.TZ = oldTimezone;
+  }
 });
 test("allocations remain currency-neutral and summary detects overspend", () => {
   const a = allocateBudget(100, "Budget-conscious");
@@ -173,6 +191,9 @@ test("event validation rejects non-finite and invalid values", () => {
     expenses: [],
   };
   assert.equal(validateEvent(base), null);
+  assert.equal(validateEvent({ ...base, expenses: [{ id: "legacy-expense", description: "Legacy record", amount: 100, createdAt: "2025-01-02T15:00:00.000Z" }] }), null);
+  assert.equal(validateEvent({ ...base, expenses: [{ id: "expense-1", description: "Venue deposit", amount: 100, date: "2027-02-28" }] }), null);
+  assert.match(validateEvent({ ...base, expenses: [{ id: "expense-1", description: "Venue deposit", amount: 100, date: "2027-02-30" }] }), /Expense date/);
   assert.ok(validateEvent({ ...base, budget: Infinity }));
   assert.ok(validateEvent({ ...base, guests: 1.4 }));
   assert.ok(validateEvent({ ...base, expenses: [{ amount: -1 }] }));

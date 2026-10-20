@@ -11,6 +11,7 @@ import {
   validAllocations,
   taskBlocked,
   dependentTaskIds,
+  expenseDate,
   taskGraphError,
   guestsCsv,
   recalculateGeneratedTasks,
@@ -20,6 +21,10 @@ import "./style.css";
 
 const h = React.createElement;
 const KEY = "festivo-demo-v1";
+const localDate = (date = new Date()) => {
+  const offset = date.getTimezoneOffset() * 60000;
+  return new Date(date.getTime() - offset).toISOString().slice(0, 10);
+};
 const blank = () => ({
   id: crypto.randomUUID(),
   name: "",
@@ -62,6 +67,7 @@ function App() {
     [expense, setExpense] = useState({
       description: "",
       amount: "",
+      date: localDate(),
       category: "Venue",
       status: "Estimated",
     }),
@@ -202,7 +208,7 @@ function App() {
         : [...event.expenses, { id: crypto.randomUUID(), ...expense, amount: n, createdAt: new Date().toISOString() }],
     };
     update(() => next);
-    setExpense({ ...expense, description: "", amount: "" });
+    setExpense({ ...expense, description: "", amount: "", date: localDate() });
     setEditingExpenseId("");
     save(next);
   };
@@ -1020,15 +1026,15 @@ function App() {
         ),
         h(
           "form",
-          { className: "inline-form", onSubmit: add },
-          h("input", {
+          { className: "inline-form expense-form", onSubmit: add },
+          h("label", null, "Description", h("input", {
             required: true,
-          maxLength: 160,
-          placeholder: "Expense description",
+            maxLength: 160,
+            placeholder: "Expense description",
             value: x.description,
             onChange: (ev) => setX({ ...x, description: ev.target.value }),
-          }),
-          h("input", {
+          })),
+          h("label", null, "Amount", h("input", {
             required: true,
             type: "number",
             min: "0.01",
@@ -1036,28 +1042,25 @@ function App() {
             placeholder: "Amount",
             value: x.amount,
             onChange: (ev) => setX({ ...x, amount: ev.target.value }),
-          }),
-          h(
-            "select",
-            {
-              value: x.category,
-              onChange: (ev) => setX({ ...x, category: ev.target.value }),
-            },
-            a.map((c) => h("option", { key: c.name }, c.name)),
-          ),
-          h(
-            "select",
-            {
-              value: x.status,
-              "aria-label": "Expense status",
-              onChange: (ev) => setX({ ...x, status: ev.target.value }),
-            },
-            ["Estimated", "Committed", "Actual"].map((status) =>
-              h("option", { key: status }, status),
-            ),
-          ),
+          })),
+          h("label", null, "Date", h("input", {
+            required: true,
+            type: "date",
+            value: x.date || "",
+            onChange: (ev) => setX({ ...x, date: ev.target.value }),
+          })),
+          h("label", null, "Category", h("select", {
+            value: x.category,
+            onChange: (ev) => setX({ ...x, category: ev.target.value }),
+          }, a.map((c) => h("option", { key: c.name }, c.name)))),
+          h("label", null, "Status", h("select", {
+            value: x.status,
+            onChange: (ev) => setX({ ...x, status: ev.target.value }),
+          }, ["Estimated", "Committed", "Actual"].map((status) =>
+            h("option", { key: status }, status),
+          ))),
           h("button", { className: "primary small" }, editingExpenseId ? "Save expense" : "Add expense"),
-          editingExpenseId && h("button", { type: "button", className: "outline", onClick: () => { setEditingExpenseId(""); setX({ description: "", amount: "", category: a[0]?.name || "Other", status: "Estimated" }); } }, "Cancel edit"),
+          editingExpenseId && h("button", { type: "button", className: "outline", onClick: () => { setEditingExpenseId(""); setX({ description: "", amount: "", date: localDate(), category: a[0]?.name || "Other", status: "Estimated" }); } }, "Cancel edit"),
         ),
         h(
           "div",
@@ -1071,7 +1074,7 @@ function App() {
                     "span",
                     null,
                     h("strong", null, x.description),
-                    h("small", null, `${x.category} · ${x.status}`),
+                    h("small", null, `${x.category} · ${x.status} · ${expenseDate(x) || "Date not set"}`),
                   ),
                   h("b", null, money(x.amount, e.currency)),
                   h(
@@ -1098,7 +1101,7 @@ function App() {
                   ),
                   h(
                     "button",
-                    { type: "button", className: "outline", onClick: () => { setEditingExpenseId(x.id); setX({ description: x.description, amount: String(x.amount), category: x.category, status: x.status }); } },
+                    { type: "button", className: "outline", onClick: () => { setEditingExpenseId(x.id); setX({ description: x.description, amount: String(x.amount), date: expenseDate(x) || localDate(), category: x.category, status: x.status }); } },
                     "Edit",
                   ),
                   h(

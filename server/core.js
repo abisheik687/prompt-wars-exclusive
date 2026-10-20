@@ -46,6 +46,7 @@ export function validateEvent(e) {
     )
       return "Expenses need a valid positive amount.";
   for (const x of e.expenses || []) if (x.description !== undefined && (typeof x.description !== "string" || !x.description.trim() || x.description.length > 160)) return "Expense description is required (160 characters maximum).";
+  for (const x of e.expenses || []) if (x.date !== undefined && (typeof x.date !== "string" || !/^\d{4}-\d\d-\d\d$/.test(x.date) || Number.isNaN(new Date(`${x.date}T12:00:00Z`).getTime()) || new Date(`${x.date}T12:00:00Z`).toISOString().slice(0, 10) !== x.date)) return "Expense date must be a valid calendar date.";
   for (const x of e.expenses || []) if (x.status !== undefined && !["Estimated", "Committed", "Actual"].includes(x.status)) return "Expense status is invalid.";
   for (const row of e.schedule || []) {
     if (!object(row) || typeof row.id !== "string" || typeof row.title !== "string" || !row.title.trim() || !/^(?:[01]\d|2[0-3]):[0-5]\d$/.test(row.start) || !/^(?:[01]\d|2[0-3]):[0-5]\d$/.test(row.end) || row.end <= row.start) return "Schedule entries need a title and a valid time range.";

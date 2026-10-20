@@ -6,7 +6,7 @@ Festivo helps people plan weddings, birthdays, community events, and custom gath
 
 - Event setup with date, location, budget, currency, guest count, venue preference, theme, planning style, and optional access/dietary notes.
 - Context-specific planning guide through Vertex AI when configured; clearly labeled deterministic guidance otherwise.
-- Editable and addable budget categories, deterministic allocation reconciliation, estimates, committed and actual spending, remaining funds, and overspending indicators.
+- Editable and addable budget categories, deterministic allocation reconciliation, dated expenses, estimates, committed and actual spending, remaining funds, and overspending indicators.
 - Date-aware tasks with editable due dates, priorities, dependencies, blocked/overdue states, cycle prevention, and protected completed/custom tasks when event dates change.
 - Vendor records with contact details, quote/cost/deposit/payment status, booking state, follow-up date, contract and comparison notes.
 - Guest CRUD, RSVP and meal counts, optional notes, and CSV export with quoting and formula-injection protection.
