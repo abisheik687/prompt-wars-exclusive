@@ -42,15 +42,9 @@ pnpm start
 
 Set `PORT` if needed; the API defaults to 8080. Browser demo records are stored in localStorage. The API is needed for configured Vertex AI requests and cloud persistence.
 
-## Free public demo on Render
+## GitHub Pages demo
 
-`render.yaml` describes a single Render Web Service on the Free plan in Singapore. It builds the Vite app, starts the Express server, checks `/api/health`, enables browser-demo mode, and disables automatic deployments. The service requires no API keys, Firebase configuration, Google Cloud project, or payment information. Its public URL serves the app and API from the same origin.
-
-To deploy, create a Render account, then create a Blueprint from this public repository or create a Web Service from the public Git URL `https://github.com/abisheik687/prompt-wars-exclusive`. Choose the `main` branch and Free plan. If using the manual Web Service form, use Node runtime, build command `corepack enable && pnpm install --frozen-lockfile && pnpm build`, start command `pnpm start`, and health check path `/api/health`. Do not add a payment method or upgrade the service. Service creation requires your Render account; this repository does not connect an account or create a hosted service automatically.
-
-The app stores events in that browser's localStorage; it does not provide server-side or cross-device event persistence in this configuration. When Vertex AI is unconfigured, planning and copilot responses are deterministic fallback guidance computed in the browser, and event contents are not sent to the API for those requests. The UI labels those responses as local suggestions.
-
-Render's Free web services sleep after 15 minutes without traffic and may take about a minute to wake. Free services have a shared 750 instance-hour monthly allowance per workspace and limited shared bandwidth/build minutes. The filesystem is ephemeral. If usage caps are exceeded without a payment method, Render suspends the affected service/builds until the allowance resets; adding a payment method can permit metered overage charges. See Render's [Free instance limitations](https://render.com/docs/free) and [Blueprint specification](https://render.com/docs/blueprint-spec).
+The public static demo is built and deployed by [`.github/workflows/pages.yml`](.github/workflows/pages.yml). Its Vite base path is set for this repository's project URL. GitHub Pages serves only static files, so the Pages build enables browser-demo mode: events stay in localStorage, and plan/copilot fallback guidance runs in the browser. It does not provide server-side or cross-device persistence and does not connect to Vertex AI, Firebase, or Firestore. No credentials are needed. GitHub Pages is available for public repositories on GitHub Free; configure the repository's Pages source as **GitHub Actions** if it is not already selected.
 
 ## Google Cloud configuration
 

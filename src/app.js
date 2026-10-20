@@ -83,7 +83,10 @@ function App() {
   useEffect(() => {
     let active = true;
     let stop = () => {};
-    Promise.all([fetch("/api/health").then((r) => r.json()).catch(() => ({})), initializeAuth()]).then(([health, configured]) => {
+    const healthRequest = import.meta.env.VITE_STATIC_DEMO === "true"
+      ? Promise.resolve({ authRequired: false, aiConfigured: false })
+      : fetch("/api/health").then((r) => r.json()).catch(() => ({}));
+    Promise.all([healthRequest, initializeAuth()]).then(([health, configured]) => {
       if (!active) return;
       setAuthState((x) => ({ ...x, required: Boolean(health.authRequired), configured, aiConfigured: Boolean(health.aiConfigured), ready: true }));
       stop = watchAuth((user) => { if (active) setAuthState((x) => ({ ...x, user })); });
@@ -1656,6 +1659,7 @@ function localAnswer(e, q) {
   return `For ${e.type.toLowerCase()} planning, ask vendors for availability, itemized pricing, deposits, cancellation terms, setup/cleanup timing, and how they can meet your stated ${e.accessibility || e.dietary || "guest"} requirements. Their answers need to be confirmed directly.`;
 }
 async function apiSave(e) {
+  if (import.meta.env.VITE_STATIC_DEMO === "true") return;
   const authorization = await authHeaders();
   const r = await fetch(`/api/events/${encodeURIComponent(e.id)}`, {
     method: "PUT",

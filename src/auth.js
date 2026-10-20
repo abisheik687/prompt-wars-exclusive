@@ -10,6 +10,7 @@ let config = {
 export let authConfigured = Object.values(config).every(Boolean);
 let auth = authConfigured ? getAuth(getApps().length ? getApp() : initializeApp(config)) : null;
 export async function initializeAuth() {
+  if (import.meta.env.VITE_STATIC_DEMO === "true") return false;
   if (!auth) {
     try {
       const response = await fetch("/api/client-config");
